@@ -118,7 +118,10 @@ const FlightCalendarSearch = () => {
       return;
     }
 
-    if (!process.env.REACT_APP_SERPAPI_KEY) {
+    const apiKey = process.env.REACT_APP_SERPAPI_KEY;
+    const apiEndpoint = process.env.REACT_APP_SERPAPI_ENDPOINT;
+
+    if (!apiKey) {
       console.error('SerpAPI key is missing. Please add it to your .env file');
       setAirportError('API configuration error. Please contact support.');
       return;
@@ -135,10 +138,10 @@ const FlightCalendarSearch = () => {
         year: searchParams.year
       });
 
-      const response = await axios.get(process.env.REACT_APP_SERPAPI_ENDPOINT, {
+      const response = await axios.get(apiEndpoint || 'https://serpapi.com/search.json', {
         params: {
           engine: 'google_flights',
-          api_key: process.env.REACT_APP_SERPAPI_KEY,
+          api_key: apiKey,
           departure_id: searchParams.departure_id,
           arrival_id: searchParams.arrival_id,
           type: 1,
@@ -397,6 +400,26 @@ const FlightCalendarSearch = () => {
       fontSize: '12px',
       color: '#666',
       marginTop: '5px'
+    },
+    searchButton: {
+      padding: '10px 20px',
+      backgroundColor: '#2196f3',
+      color: 'white',
+      border: 'none',
+      borderRadius: '4px',
+      cursor: 'pointer',
+      fontSize: '16px',
+      fontWeight: 'bold',
+      marginTop: '10px',
+      width: '100%',
+      transition: 'background-color 0.3s ease'
+    },
+    searchButtonDisabled: {
+      backgroundColor: '#ccc',
+      cursor: 'not-allowed'
+    },
+    searchButtonHover: {
+      backgroundColor: '#1976d2'
     }
   };
 
@@ -476,6 +499,18 @@ const FlightCalendarSearch = () => {
             ))}
           </select>
         </div>
+
+        <button
+          onClick={handleSearch}
+          disabled={loading || !searchParams.departure_id || !searchParams.arrival_id}
+          style={{
+            ...styles.searchButton,
+            ...(loading || !searchParams.departure_id || !searchParams.arrival_id ? styles.searchButtonDisabled : {}),
+            ':hover': styles.searchButtonHover
+          }}
+        >
+          {loading ? 'Searching...' : 'Search Flights'}
+        </button>
       </div>
       
       <div style={styles.calendarHeader}>
