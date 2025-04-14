@@ -12,7 +12,8 @@ const envKeys = Object.keys(env).reduce((prev, next) => {
   return prev;
 }, {});
 
-const port = process.env.PORT || 3000;
+// Use port 3001 for webpack dev server
+const port = 3001;
 
 module.exports = {
   mode: 'development',
@@ -41,13 +42,34 @@ module.exports = {
     ]
   },
   resolve: {
-    extensions: ['.js', '.jsx']
+    extensions: ['.js', '.jsx'],
+    fallback: {
+      "stream": require.resolve("stream-browserify"),
+      "http": require.resolve("stream-http"),
+      "https": require.resolve("https-browserify"),
+      "zlib": require.resolve("browserify-zlib"),
+      "assert": require.resolve("assert/"),
+      "url": require.resolve("url/"),
+      "buffer": require.resolve("buffer/"),
+      "util": require.resolve("util/"),
+      "crypto": require.resolve("crypto-browserify"),
+      "path": require.resolve("path-browserify"),
+      "process": require.resolve("process/browser.js"),
+      "fs": false,
+      "net": false,
+      "tls": false,
+      "child_process": false
+    }
   },
   plugins: [
     new HtmlWebpackPlugin({
       template: './public/index.html'
     }),
-    new webpack.DefinePlugin(envKeys)
+    new webpack.DefinePlugin(envKeys),
+    new webpack.ProvidePlugin({
+      process: 'process/browser.js',
+      Buffer: ['buffer', 'Buffer']
+    })
   ],
   devServer: {
     static: {
@@ -56,6 +78,12 @@ module.exports = {
     port: port,
     open: true,
     hot: true,
-    historyApiFallback: true
+    historyApiFallback: true,
+    client: {
+      overlay: {
+        errors: true,
+        warnings: false,
+      },
+    },
   }
 };

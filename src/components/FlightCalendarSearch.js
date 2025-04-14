@@ -1,8 +1,77 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
+import './FlightCalendarSearch.css';
 
 // FlightCalendarSearch Component
 const FlightCalendarSearch = () => {
+  const [departureAirport, setDepartureAirport] = useState('');
+  const [arrivalAirport, setArrivalAirport] = useState('');
+  const [departureDate, setDepartureDate] = useState(null);
+  const [returnDate, setReturnDate] = useState(null);
+  const [flights, setFlights] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [adults, setAdults] = useState(1);
+  const [children, setChildren] = useState(0);
+  const [infantsInSeat, setInfantsInSeat] = useState(0);
+  const [infantsOnLap, setInfantsOnLap] = useState(0);
+  const [travelClass, setTravelClass] = useState('economy');
+  const [stops, setStops] = useState('0');
+  const [currency, setCurrency] = useState('USD');
+  const [language, setLanguage] = useState('en');
+  const [country, setCountry] = useState('us');
+  const [deepSearch, setDeepSearch] = useState(false);
+  const [sortBy, setSortBy] = useState('price');
+  const [showHidden, setShowHidden] = useState(false);
+
+  const handleSearch = async () => {
+    setLoading(true);
+    setError(null);
+    setFlights([]);
+
+    try {
+      const params = new URLSearchParams({
+        api_key: process.env.REACT_APP_SERPAPI_KEY,
+        engine: 'google_flights',
+        departure_id: departureAirport,
+        arrival_id: arrivalAirport,
+        outbound_date: departureDate ? departureDate.toISOString().split('T')[0] : '',
+        return_date: returnDate ? returnDate.toISOString().split('T')[0] : '',
+        adults: adults,
+        children: children,
+        infants_in_seat: infantsInSeat,
+        infants_on_lap: infantsOnLap,
+        travel_class: travelClass,
+        stops: stops,
+        currency: currency,
+        hl: language,
+        gl: country,
+        deep_search: deepSearch,
+        sort_by: sortBy,
+        show_hidden: showHidden
+      });
+
+      const response = await fetch(`https://serpapi.com/search?${params.toString()}`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      setFlights(data.flights || []);
+    } catch (error) {
+      setError(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const [searchParams, setSearchParams] = useState({
     departure_id: '',
     arrival_id: '',
@@ -18,7 +87,6 @@ const FlightCalendarSearch = () => {
   });
   
   const [calendarData, setCalendarData] = useState([]);
-  const [loading, setLoading] = useState(false);
   const [selectedDate, setSelectedDate] = useState(null);
   const [hoveredDate, setHoveredDate] = useState(null);
   const [airportError, setAirportError] = useState('');
@@ -110,106 +178,6 @@ const FlightCalendarSearch = () => {
     }
     
     setCalendarData(days);
-  };
-  
-  const handleSearch = async () => {
-    if (!searchParams.departure_id || !searchParams.arrival_id) {
-      setAirportError('Please enter both departure and arrival airport codes');
-      return;
-    }
-
-    const apiKey = process.env.REACT_APP_SERPAPI_KEY;
-    const apiEndpoint = process.env.REACT_APP_SERPAPI_ENDPOINT;
-
-    if (!apiKey) {
-      console.error('SerpAPI key is missing. Please add it to your .env file');
-      setAirportError('API configuration error. Please contact support.');
-      return;
-    }
-
-    setLoading(true);
-    setAirportError('');
-    
-    try {
-      console.log('Making API call with params:', {
-        departure_id: searchParams.departure_id,
-        arrival_id: searchParams.arrival_id,
-        month: searchParams.month,
-        year: searchParams.year
-      });
-
-      const response = await axios.get(apiEndpoint || 'https://serpapi.com/search.json', {
-        params: {
-          engine: 'google_flights',
-          api_key: apiKey,
-          departure_id: searchParams.departure_id,
-          arrival_id: searchParams.arrival_id,
-          type: 1,
-          outbound_date: `${searchParams.year}-${String(searchParams.month + 1).padStart(2, '0')}-01`,
-          return_date: `${searchParams.year}-${String(searchParams.month + 1).padStart(2, '0')}-${new Date(searchParams.year, searchParams.month + 1, 0).getDate()}`,
-          adults: searchParams.adults,
-          children: searchParams.children,
-          infants_in_seat: searchParams.infants_in_seat,
-          infants_on_lap: searchParams.infants_on_lap,
-          travel_class: searchParams.travel_class,
-          stops: searchParams.stops,
-          currency: searchParams.currency,
-          hl: 'en',
-          gl: 'us',
-          deep_search: true,
-          sort_by: 2,
-          show_hidden: true
-        }
-      });
-
-      console.log('API Response:', response.data);
-
-      if (response.data && response.data.best_flights) {
-        const flightsData = response.data.best_flights;
-        const updatedCalendarData = calendarData.map(day => {
-          if (day.empty) return day;
-
-          const flightForDay = flightsData.find(flight => {
-            const flightDate = new Date(flight.departure_airport.time);
-            return flightDate.getDate() === day.date.getDate();
-          });
-          
-          if (flightForDay) {
-            return {
-              ...day,
-              price: flightForDay.price,
-              flightData: {
-                airline: flightForDay.airlines[0],
-                departureTime: flightForDay.departure_airport.time,
-                arrivalTime: flightForDay.arrival_airport.time,
-                duration: flightForDay.duration,
-                stops: flightForDay.stops
-              }
-            };
-          }
-          return day;
-        });
-        
-        setCalendarData(updatedCalendarData);
-      } else {
-        setAirportError('No flights found for the selected route');
-      }
-    } catch (error) {
-      console.error('Error fetching flight data:', error);
-      if (error.response) {
-        // The request was made and the server responded with a status code
-        // that falls out of the range of 2xx
-        setAirportError(`API Error: ${error.response.data.error || 'Unknown error'}`);
-      } else if (error.request) {
-        // The request was made but no response was received
-        setAirportError('Network error. Please check your connection.');
-      } else {
-        // Something happened in setting up the request that triggered an Error
-        setAirportError('An error occurred while processing your request.');
-      }
-    } finally {
-      setLoading(false);
-    }
   };
   
   const handlePrevMonth = () => {
