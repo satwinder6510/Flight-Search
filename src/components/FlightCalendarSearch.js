@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 
 // FlightCalendarSearch Component
 const FlightCalendarSearch = () => {
@@ -90,14 +91,67 @@ const FlightCalendarSearch = () => {
     setCalendarData(days);
   };
   
-  const handleSearch = () => {
+  const handleSearch = async () => {
     setLoading(true);
     
-    // In a real application, you would call the SerpAPI here
-    // For demo purposes, we'll just use the generated calendar data
-    setTimeout(() => {
+    try {
+      const response = await axios.get('https://serpapi.com/search.json', {
+        params: {
+          engine: 'google_flights',
+          api_key: process.env.REACT_APP_SERPAPI_KEY,
+          departure_id: searchParams.departure_id,
+          arrival_id: searchParams.arrival_id,
+          type: 1, // Round trip
+          outbound_date: `${searchParams.year}-${String(searchParams.month + 1).padStart(2, '0')}-01`,
+          return_date: `${searchParams.year}-${String(searchParams.month + 1).padStart(2, '0')}-${new Date(searchParams.year, searchParams.month + 1, 0).getDate()}`,
+          adults: searchParams.adults,
+          children: searchParams.children,
+          infants_in_seat: searchParams.infants_in_seat,
+          infants_on_lap: searchParams.infants_on_lap,
+          travel_class: searchParams.travel_class,
+          stops: searchParams.stops,
+          currency: searchParams.currency,
+          hl: 'en',
+          gl: 'us',
+          deep_search: true, // For more accurate results
+          sort_by: 2, // Sort by price
+          show_hidden: true // Include hidden flight results
+        }
+      });
+
+      // Process the API response
+      if (response.data && response.data.best_flights) {
+        const flightsData = response.data.best_flights;
+        const updatedCalendarData = calendarData.map(day => {
+          const flightForDay = flightsData.find(flight => {
+            const flightDate = new Date(flight.departure_airport.time);
+            return flightDate.getDate() === day.date;
+          });
+          
+          if (flightForDay) {
+            return {
+              ...day,
+              price: flightForDay.price,
+              flightData: {
+                airline: flightForDay.airlines[0],
+                departureTime: flightForDay.departure_airport.time,
+                arrivalTime: flightForDay.arrival_airport.time,
+                duration: flightForDay.duration,
+                stops: flightForDay.stops
+              }
+            };
+          }
+          return day;
+        });
+        
+        setCalendarData(updatedCalendarData);
+      }
+    } catch (error) {
+      console.error('Error fetching flight data:', error);
+      // You might want to show an error message to the user here
+    } finally {
       setLoading(false);
-    }, 1500);
+    }
   };
   
   const handlePrevMonth = () => {
