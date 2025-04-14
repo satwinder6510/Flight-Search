@@ -1,77 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import DatePicker from 'react-datepicker';
+import { ChevronLeft, ChevronRight, MapPin, Users, Plane, Filter } from 'lucide-react';
 import 'react-datepicker/dist/react-datepicker.css';
 import './FlightCalendarSearch.css';
 
-// FlightCalendarSearch Component
 const FlightCalendarSearch = () => {
-  const [departureAirport, setDepartureAirport] = useState('');
-  const [arrivalAirport, setArrivalAirport] = useState('');
-  const [departureDate, setDepartureDate] = useState(null);
-  const [returnDate, setReturnDate] = useState(null);
-  const [flights, setFlights] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [adults, setAdults] = useState(1);
-  const [children, setChildren] = useState(0);
-  const [infantsInSeat, setInfantsInSeat] = useState(0);
-  const [infantsOnLap, setInfantsOnLap] = useState(0);
-  const [travelClass, setTravelClass] = useState('economy');
-  const [stops, setStops] = useState('0');
-  const [currency, setCurrency] = useState('USD');
-  const [language, setLanguage] = useState('en');
-  const [country, setCountry] = useState('us');
-  const [deepSearch, setDeepSearch] = useState(false);
-  const [sortBy, setSortBy] = useState('price');
-  const [showHidden, setShowHidden] = useState(false);
-
-  const handleSearch = async () => {
-    setLoading(true);
-    setError(null);
-    setFlights([]);
-
-    try {
-      const params = new URLSearchParams({
-        api_key: process.env.REACT_APP_SERPAPI_KEY,
-        engine: 'google_flights',
-        departure_id: departureAirport,
-        arrival_id: arrivalAirport,
-        outbound_date: departureDate ? departureDate.toISOString().split('T')[0] : '',
-        return_date: returnDate ? returnDate.toISOString().split('T')[0] : '',
-        adults: adults,
-        children: children,
-        infants_in_seat: infantsInSeat,
-        infants_on_lap: infantsOnLap,
-        travel_class: travelClass,
-        stops: stops,
-        currency: currency,
-        hl: language,
-        gl: country,
-        deep_search: deepSearch,
-        sort_by: sortBy,
-        show_hidden: showHidden
-      });
-
-      const response = await fetch(`https://serpapi.com/search?${params.toString()}`);
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      
-      if (data.error) {
-        throw new Error(data.error);
-      }
-
-      setFlights(data.flights || []);
-    } catch (error) {
-      setError(error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const [searchParams, setSearchParams] = useState({
     departure_id: '',
     arrival_id: '',
@@ -87,9 +19,9 @@ const FlightCalendarSearch = () => {
   });
   
   const [calendarData, setCalendarData] = useState([]);
+  const [loading, setLoading] = useState(false);
   const [selectedDate, setSelectedDate] = useState(null);
   const [hoveredDate, setHoveredDate] = useState(null);
-  const [airportError, setAirportError] = useState('');
   
   const monthNames = [
     'January', 'February', 'March', 'April', 'May', 'June',
@@ -121,41 +53,12 @@ const FlightCalendarSearch = () => {
     { id: 3, name: '2 stops or fewer' }
   ];
   
-  const validateAirportCode = (code) => {
-    return /^[A-Z]{3}$/.test(code);
-  };
-
-  const handleAirportInput = (e) => {
-    const { name, value } = e.target;
-    const uppercaseValue = value.toUpperCase();
-    
-    if (uppercaseValue.length > 3) {
-      return; // Don't allow more than 3 characters
-    }
-    
-    if (uppercaseValue.length === 3 && !validateAirportCode(uppercaseValue)) {
-      setAirportError('Please enter a valid 3-letter airport code');
-      return;
-    } else {
-      setAirportError('');
-    }
-    
-    setSearchParams(prev => ({ ...prev, [name]: uppercaseValue }));
-  };
-  
-  // Generate calendar structure (without prices) when month/year changes
+  // Generate calendar data whenever month or year changes
   useEffect(() => {
-    generateCalendarStructure();
+    generateCalendarData();
   }, [searchParams.month, searchParams.year]);
-
-  // Fetch flight data when search parameters change
-  useEffect(() => {
-    if (searchParams.departure_id && searchParams.arrival_id) {
-      handleSearch();
-    }
-  }, [searchParams.departure_id, searchParams.arrival_id, searchParams.month, searchParams.year]);
-
-  const generateCalendarStructure = () => {
+  
+  const generateCalendarData = () => {
     const daysInMonth = new Date(searchParams.year, searchParams.month + 1, 0).getDate();
     const firstDayOfMonth = new Date(searchParams.year, searchParams.month, 1).getDay();
     
@@ -166,30 +69,95 @@ const FlightCalendarSearch = () => {
       days.push({ day: null, price: null, empty: true });
     }
     
-    // Add days of the month
+    // Add days of the month with demo flight data (to be replaced with real API data)
     for (let i = 1; i <= daysInMonth; i++) {
+      // For demo, generate a random price; replace with API price when available.
+      const randomPrice = Math.floor(Math.random() * 500) + 200;
       days.push({
         day: i,
         date: new Date(searchParams.year, searchParams.month, i),
-        price: null,
+        price: randomPrice,
         empty: false,
-        flightData: null
+        flightData: {
+          airline: ['American Airlines', 'Delta', 'United', 'British Airways', 'Singapore Airlines'][Math.floor(Math.random() * 5)],
+          departureTime: `${Math.floor(Math.random() * 12) + 1}:${Math.floor(Math.random() * 60).toString().padStart(2, '0')} ${Math.random() > 0.5 ? 'AM' : 'PM'}`,
+          arrivalTime: `${Math.floor(Math.random() * 12) + 1}:${Math.floor(Math.random() * 60).toString().padStart(2, '0')} ${Math.random() > 0.5 ? 'AM' : 'PM'}`,
+          duration: `${Math.floor(Math.random() * 10) + 2}h ${Math.floor(Math.random() * 50).toString().padStart(2, '0')}m`,
+          stops: Math.floor(Math.random() * 3)
+        }
       });
     }
     
     setCalendarData(days);
   };
   
+  // UPDATED handleSearch function to integrate the Google Flights API
+  const handleSearch = async () => {
+    setLoading(true);
+    
+    try {
+      const params = new URLSearchParams({
+        engine: 'google_flights',
+        api_key: process.env.REACT_APP_SERPAPI_KEY,
+        departure_id: searchParams.departure_id,
+        arrival_id: searchParams.arrival_id,
+        // For demonstration, we use the first day of the selected month as the outbound_date
+        outbound_date: new Date(searchParams.year, searchParams.month, 1).toISOString().split('T')[0],
+        gl: 'us',
+        hl: 'en',
+        currency: searchParams.currency,
+        travel_class: searchParams.travel_class,
+        stops: searchParams.stops,
+        deep_search: true
+      });
+      
+      const apiUrl = `https://serpapi.com/search?${params.toString()}`;
+      console.log('Fetching API URL:', apiUrl);
+      
+      const response = await fetch(apiUrl);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      if (data.error) {
+        throw new Error(data.error);
+      }
+      
+      console.log('API Response:', data);
+      
+      // Map API flight results to calendarData
+      if (data.flights) {
+        const updatedCalendar = calendarData.map(day => {
+          if (!day.empty && day.date) {
+            const flightsForDay = data.flights.filter(flight => {
+              const flightDate = new Date(flight.departure_date); // Adjust based on actual API data property
+              return day.date.toDateString() === flightDate.toDateString();
+            });
+            return { ...day, flightData: flightsForDay.length ? flightsForDay[0] : null };
+          }
+          return day;
+        });
+        setCalendarData(updatedCalendar);
+      }
+      
+    } catch (error) {
+      console.error('Search error:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
   const handlePrevMonth = () => {
     setSearchParams(prev => {
       let newMonth = prev.month - 1;
       let newYear = prev.year;
-      
       if (newMonth < 0) {
         newMonth = 11;
         newYear--;
       }
-      
       return { ...prev, month: newMonth, year: newYear };
     });
   };
@@ -198,12 +166,10 @@ const FlightCalendarSearch = () => {
     setSearchParams(prev => {
       let newMonth = prev.month + 1;
       let newYear = prev.year;
-      
       if (newMonth > 11) {
         newMonth = 0;
         newYear++;
       }
-      
       return { ...prev, month: newMonth, year: newYear };
     });
   };
@@ -219,359 +185,263 @@ const FlightCalendarSearch = () => {
       currency: searchParams.currency 
     }).format(price);
   };
-  
-  const getCurrencySymbol = () => {
-    return new Intl.NumberFormat('en-US', { 
-      style: 'currency', 
-      currency: searchParams.currency 
-    }).format(0).replace(/[0-9]/g, '').trim();
-  };
-
-  const styles = {
-    container: {
-      maxWidth: '800px',
-      margin: '0 auto',
-      padding: '20px',
-      fontFamily: 'Arial, sans-serif'
-    },
-    header: {
-      textAlign: 'center',
-      marginBottom: '20px'
-    },
-    searchForm: {
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '10px',
-      marginBottom: '20px'
-    },
-    formRow: {
-      display: 'flex',
-      gap: '10px'
-    },
-    select: {
-      flex: 1,
-      padding: '8px',
-      borderRadius: '4px',
-      border: '1px solid #ccc'
-    },
-    calendar: {
-      display: 'grid',
-      gridTemplateColumns: 'repeat(7, 1fr)',
-      gap: '5px'
-    },
-    calendarHeader: {
-      display: 'grid',
-      gridTemplateColumns: 'repeat(7, 1fr)',
-      gap: '5px',
-      marginBottom: '10px',
-      fontWeight: 'bold',
-      textAlign: 'center'
-    },
-    day: {
-      padding: '10px',
-      border: '1px solid #ccc',
-      borderRadius: '4px',
-      textAlign: 'center',
-      cursor: 'pointer',
-      position: 'relative'
-    },
-    emptyDay: {
-      backgroundColor: '#f5f5f5'
-    },
-    price: {
-      fontSize: '14px',
-      color: '#666',
-      marginTop: '5px'
-    },
-    selectedDay: {
-      backgroundColor: '#e3f2fd',
-      borderColor: '#2196f3'
-    },
-    hoveredDay: {
-      backgroundColor: '#f5f5f5'
-    },
-    loading: {
-      textAlign: 'center',
-      padding: '20px'
-    },
-    modal: {
-      position: 'fixed',
-      top: '50%',
-      left: '50%',
-      transform: 'translate(-50%, -50%)',
-      backgroundColor: 'white',
-      padding: '20px',
-      borderRadius: '8px',
-      boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
-      zIndex: 1000,
-      minWidth: '300px'
-    },
-    modalHeader: {
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      marginBottom: '15px'
-    },
-    modalClose: {
-      cursor: 'pointer',
-      fontSize: '20px'
-    },
-    modalFlight: {
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      marginBottom: '15px'
-    },
-    modalFlightInfo: {
-      fontSize: '16px',
-      fontWeight: 'bold'
-    },
-    modalPrice: {
-      fontSize: '18px',
-      fontWeight: 'bold',
-      color: '#2196f3'
-    },
-    modalTimes: {
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      marginBottom: '15px'
-    },
-    modalTime: {
-      textAlign: 'center'
-    },
-    modalTimeValue: {
-      fontSize: '16px',
-      fontWeight: 'bold'
-    },
-    modalTimeLocation: {
-      fontSize: '14px',
-      color: '#666'
-    },
-    modalDuration: {
-      flex: 1,
-      textAlign: 'center',
-      position: 'relative',
-      margin: '0 20px'
-    },
-    modalDurationValue: {
-      fontSize: '14px',
-      color: '#666',
-      marginBottom: '5px'
-    },
-    modalDurationLine: {
-      height: '1px',
-      backgroundColor: '#ccc',
-      margin: '5px 0'
-    },
-    modalStops: {
-      fontSize: '12px',
-      color: '#666',
-      marginTop: '5px'
-    },
-    searchButton: {
-      padding: '10px 20px',
-      backgroundColor: '#2196f3',
-      color: 'white',
-      border: 'none',
-      borderRadius: '4px',
-      cursor: 'pointer',
-      fontSize: '16px',
-      fontWeight: 'bold',
-      marginTop: '10px',
-      width: '100%',
-      transition: 'background-color 0.3s ease'
-    },
-    searchButtonDisabled: {
-      backgroundColor: '#ccc',
-      cursor: 'not-allowed'
-    },
-    searchButtonHover: {
-      backgroundColor: '#1976d2'
-    }
-  };
 
   return (
-    <div style={styles.container}>
-      <div style={styles.header}>
-        <h2>Flight Search Calendar</h2>
-      </div>
+    <div className="flex flex-col min-h-screen bg-gray-50">
+      <header className="bg-teal-500 text-white p-4">
+        <div className="container mx-auto">
+          <h1 className="text-2xl font-bold">Flight Calendar Search</h1>
+          <p className="text-sm">Find the best prices for an entire month</p>
+        </div>
+      </header>
       
-      <div style={styles.searchForm}>
-        <div style={styles.formRow}>
-          <div style={{ flex: 1 }}>
-            <input
-              type="text"
-              name="departure_id"
-              value={searchParams.departure_id}
-              onChange={handleAirportInput}
-              placeholder="Enter Departure Airport Code (e.g., JFK)"
-              maxLength={3}
-              style={{
-                ...styles.select,
-                textTransform: 'uppercase',
-                fontFamily: 'monospace',
-                letterSpacing: '2px'
-              }}
-            />
+      <div className="container mx-auto p-4 bg-white shadow-md rounded-md mt-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Departure */}
+          <div className="flex flex-col">
+            <label className="text-sm text-gray-600 mb-1">From</label>
+            <div className="relative">
+              <select 
+                name="departure_id"
+                value={searchParams.departure_id}
+                onChange={handleInputChange}
+                className="w-full p-2 border rounded-md pl-8"
+              >
+                <option value="">Select departure airport</option>
+                {airportOptions.map(airport => (
+                  <option key={airport.id} value={airport.id}>
+                    {airport.name} ({airport.id})
+                  </option>
+                ))}
+              </select>
+              <MapPin className="absolute left-2 top-2.5 text-gray-400 h-4 w-4" />
+            </div>
           </div>
           
-          <div style={{ flex: 1 }}>
-            <input
-              type="text"
-              name="arrival_id"
-              value={searchParams.arrival_id}
-              onChange={handleAirportInput}
-              placeholder="Enter Arrival Airport Code (e.g., LAX)"
-              maxLength={3}
-              style={{
-                ...styles.select,
-                textTransform: 'uppercase',
-                fontFamily: 'monospace',
-                letterSpacing: '2px'
-              }}
-            />
+          {/* Arrival */}
+          <div className="flex flex-col">
+            <label className="text-sm text-gray-600 mb-1">To</label>
+            <div className="relative">
+              <select 
+                name="arrival_id"
+                value={searchParams.arrival_id}
+                onChange={handleInputChange}
+                className="w-full p-2 border rounded-md pl-8"
+              >
+                <option value="">Select arrival airport</option>
+                {airportOptions.map(airport => (
+                  <option key={airport.id} value={airport.id}>
+                    {airport.name} ({airport.id})
+                  </option>
+                ))}
+              </select>
+              <MapPin className="absolute left-2 top-2.5 text-gray-400 h-4 w-4" />
+            </div>
+          </div>
+          
+          {/* Passengers */}
+          <div className="flex flex-col">
+            <label className="text-sm text-gray-600 mb-1">Passengers</label>
+            <div className="flex gap-2">
+              <div className="relative w-1/2">
+                <select 
+                  name="adults"
+                  value={searchParams.adults}
+                  onChange={handleInputChange}
+                  className="w-full p-2 border rounded-md pl-8"
+                >
+                  {[...Array(9).keys()].map(num => (
+                    <option key={num + 1} value={num + 1}>
+                      {num + 1} {num === 0 ? 'Adult' : 'Adults'}
+                    </option>
+                  ))}
+                </select>
+                <Users className="absolute left-2 top-2.5 text-gray-400 h-4 w-4" />
+              </div>
+              <div className="relative w-1/2">
+                <select 
+                  name="children"
+                  value={searchParams.children}
+                  onChange={handleInputChange}
+                  className="w-full p-2 border rounded-md pl-8"
+                >
+                  {[...Array(9).keys()].map(num => (
+                    <option key={num} value={num}>
+                      {num} {num === 1 ? 'Child' : 'Children'}
+                    </option>
+                  ))}
+                </select>
+                <Users className="absolute left-2 top-2.5 text-gray-400 h-4 w-4" />
+              </div>
+            </div>
+          </div>
+          
+          {/* Class & Stops */}
+          <div className="flex flex-col">
+            <label className="text-sm text-gray-600 mb-1">Class & Stops</label>
+            <div className="flex gap-2">
+              <div className="relative w-1/2">
+                <select 
+                  name="travel_class"
+                  value={searchParams.travel_class}
+                  onChange={handleInputChange}
+                  className="w-full p-2 border rounded-md pl-8"
+                >
+                  {travelClassOptions.map(option => (
+                    <option key={option.id} value={option.id}>
+                      {option.name}
+                    </option>
+                  ))}
+                </select>
+                <Plane className="absolute left-2 top-2.5 text-gray-400 h-4 w-4" />
+              </div>
+              <div className="relative w-1/2">
+                <select 
+                  name="stops"
+                  value={searchParams.stops}
+                  onChange={handleInputChange}
+                  className="w-full p-2 border rounded-md pl-8"
+                >
+                  {stopsOptions.map(option => (
+                    <option key={option.id} value={option.id}>
+                      {option.name}
+                    </option>
+                  ))}
+                </select>
+                <Filter className="absolute left-2 top-2.5 text-gray-400 h-4 w-4" />
+              </div>
+            </div>
           </div>
         </div>
         
-        {airportError && (
-          <div style={{ color: 'red', marginBottom: '10px' }}>
-            {airportError}
-          </div>
-        )}
-        
-        <div style={styles.formRow}>
-          <select
-            name="travel_class"
-            value={searchParams.travel_class}
-            onChange={handleInputChange}
-            style={styles.select}
+        <div className="mt-4 flex justify-end">
+          <button 
+            className="bg-teal-500 text-white px-6 py-2 rounded-md hover:bg-teal-600 transition-colors"
+            onClick={handleSearch}
+            disabled={loading || !searchParams.departure_id || !searchParams.arrival_id}
           >
-            {travelClassOptions.map(option => (
-              <option key={option.id} value={option.id}>
-                {option.name}
-              </option>
-            ))}
-          </select>
-          
-          <select
-            name="stops"
-            value={searchParams.stops}
-            onChange={handleInputChange}
-            style={styles.select}
-          >
-            {stopsOptions.map(option => (
-              <option key={option.id} value={option.id}>
-                {option.name}
-              </option>
-            ))}
-          </select>
+            {loading ? 'Searching...' : 'Search Flights'}
+          </button>
         </div>
-
-        <button
-          onClick={handleSearch}
-          disabled={loading || !searchParams.departure_id || !searchParams.arrival_id}
-          style={{
-            ...styles.searchButton,
-            ...(loading || !searchParams.departure_id || !searchParams.arrival_id ? styles.searchButtonDisabled : {}),
-            ':hover': styles.searchButtonHover
-          }}
-        >
-          {loading ? 'Searching...' : 'Search Flights'}
-        </button>
       </div>
       
-      <div style={styles.calendarHeader}>
-        <div>Sun</div>
-        <div>Mon</div>
-        <div>Tue</div>
-        <div>Wed</div>
-        <div>Thu</div>
-        <div>Fri</div>
-        <div>Sat</div>
-      </div>
-      
-      {loading ? (
-        <div style={styles.loading}>Loading flight data...</div>
-      ) : (
-        <div style={styles.calendar}>
-          {calendarData.map((day, index) => (
-            <div
-              key={index}
-              style={{
-                ...styles.day,
-                ...(day.empty ? styles.emptyDay : {}),
-                ...(selectedDate === day.date ? styles.selectedDay : {}),
-                ...(hoveredDate === day.date ? styles.hoveredDay : {})
-              }}
-              onClick={() => !day.empty && setSelectedDate(day.date)}
-              onMouseEnter={() => !day.empty && setHoveredDate(day.date)}
+      {/* Calendar View */}
+      <div className="container mx-auto p-4 bg-white shadow-md rounded-md mt-4 flex-grow">
+        <div className="flex justify-between items-center mb-4">
+          <button 
+            className="p-2 rounded-full hover:bg-gray-100"
+            onClick={handlePrevMonth}
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </button>
+          
+          <h2 className="text-xl font-semibold">
+            {monthNames[searchParams.month]} {searchParams.year}
+          </h2>
+          
+          <button 
+            className="p-2 rounded-full hover:bg-gray-100"
+            onClick={handleNextMonth}
+          >
+            <ChevronRight className="h-5 w-5" />
+          </button>
+        </div>
+        
+        <div className="grid grid-cols-7 gap-2">
+          {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+            <div key={day} className="text-center font-medium p-2">
+              {day}
+            </div>
+          ))}
+          
+          {calendarData.map((dayData, index) => (
+            <div 
+              key={index} 
+              className={`
+                p-2 border rounded-md 
+                ${dayData.empty ? 'bg-gray-50' : 'hover:border-teal-500 cursor-pointer relative'}
+                ${selectedDate === dayData.day ? 'border-teal-500 bg-teal-50' : ''}
+              `}
+              onClick={() => !dayData.empty && setSelectedDate(dayData.day)}
+              onMouseEnter={() => !dayData.empty && setHoveredDate(dayData)}
               onMouseLeave={() => setHoveredDate(null)}
             >
-              {day.day}
-              {day.price && (
-                <div style={styles.price}>
-                  {formatPrice(day.price)}
+              {!dayData.empty && (
+                <>
+                  <div className="text-right text-sm">{dayData.day}</div>
+                  {dayData.price && (
+                    <div className="mt-2 text-center">
+                      <span className="text-sm font-medium text-teal-600">{formatPrice(dayData.price)}</span>
+                    </div>
+                  )}
+                </>
+              )}
+              
+              {/* Hover modal */}
+              {hoveredDate === dayData && (
+                <div className="absolute z-10 w-72 bg-white border rounded-md shadow-lg p-3 top-full left-0">
+                  <div className="font-semibold border-b pb-2 mb-2">
+                    {searchParams.departure_id || 'Origin'} → {searchParams.arrival_id || 'Destination'}
+                  </div>
+                  <div className="mb-2 text-sm text-gray-600">
+                    {new Date(dayData.date).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
+                  </div>
+                  <div className="flex justify-between mb-3">
+                    <div className="flex items-center">
+                      <Plane className="h-4 w-4 mr-1 text-gray-500" />
+                      <span className="text-sm">{dayData.flightData.airline}</span>
+                    </div>
+                    <div className="text-sm font-medium text-teal-600">{formatPrice(dayData.price)}</div>
+                  </div>
+                  <div className="flex justify-between mb-2">
+                    <div>
+                      <div className="text-lg font-semibold">{dayData.flightData.departureTime}</div>
+                      <div className="text-xs text-gray-500">{searchParams.departure_id || 'Origin'}</div>
+                    </div>
+                    <div className="flex flex-col items-center">
+                      <div className="text-xs text-gray-500">{dayData.flightData.duration}</div>
+                      <div className="border-t border-gray-300 w-16 my-1"></div>
+                      <div className="text-xs text-gray-500">
+                        {dayData.flightData.stops === 0 
+                          ? 'Nonstop' 
+                          : `${dayData.flightData.stops} ${dayData.flightData.stops === 1 ? 'stop' : 'stops'}`}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-lg font-semibold">{dayData.flightData.arrivalTime}</div>
+                      <div className="text-xs text-gray-500">{searchParams.arrival_id || 'Destination'}</div>
+                    </div>
+                  </div>
+                  <button className="w-full bg-teal-500 text-white py-1 rounded-md mt-2 text-sm">
+                    Select this flight
+                  </button>
                 </div>
               )}
             </div>
           ))}
         </div>
-      )}
-      
-      {selectedDate && (
-        <div style={styles.modal}>
-          <div style={styles.modalHeader}>
-            <h3>{selectedDate.toLocaleDateString()}</h3>
-            <span style={styles.modalClose} onClick={() => setSelectedDate(null)}>×</span>
+        
+        {/* Legend */}
+        <div className="mt-6 border-t pt-4">
+          <div className="flex items-center justify-center space-x-4 text-sm">
+            <span className="flex items-center">
+              <span className="h-3 w-3 bg-teal-50 border border-teal-500 rounded-sm inline-block mr-1"></span>
+              Selected Date
+            </span>
+            <span className="flex items-center">
+              <span className="h-3 w-3 bg-white border rounded-sm inline-block mr-1"></span>
+              Available Date
+            </span>
+            <span className="flex items-center">
+              <span className="h-3 w-3 bg-gray-50 border rounded-sm inline-block mr-1"></span>
+              Unavailable
+            </span>
           </div>
-          
-          {calendarData.find(day => day.date === selectedDate)?.flightData && (
-            <>
-              <div style={styles.modalFlight}>
-                <div style={styles.modalFlightInfo}>
-                  ✈️ {calendarData.find(day => day.date === selectedDate)?.flightData?.airline}
-                </div>
-                <div style={styles.modalPrice}>
-                  {formatPrice(calendarData.find(day => day.date === selectedDate)?.price)}
-                </div>
-              </div>
-              
-              <div style={styles.modalTimes}>
-                <div style={styles.modalTime}>
-                  <div style={styles.modalTimeValue}>
-                    {calendarData.find(day => day.date === selectedDate)?.flightData?.departureTime}
-                  </div>
-                  <div style={styles.modalTimeLocation}>
-                    {searchParams.departure_id || 'Origin'}
-                  </div>
-                </div>
-                
-                <div style={styles.modalDuration}>
-                  <div style={styles.modalDurationValue}>
-                    {calendarData.find(day => day.date === selectedDate)?.flightData?.duration}
-                  </div>
-                  <div style={styles.modalDurationLine}></div>
-                  <div style={styles.modalStops}>
-                    {calendarData.find(day => day.date === selectedDate)?.flightData?.stops === 0 
-                      ? 'Nonstop' 
-                      : `${calendarData.find(day => day.date === selectedDate)?.flightData?.stops} ${calendarData.find(day => day.date === selectedDate)?.flightData?.stops === 1 ? 'stop' : 'stops'}`}
-                  </div>
-                </div>
-                
-                <div style={styles.modalTime}>
-                  <div style={styles.modalTimeValue}>
-                    {calendarData.find(day => day.date === selectedDate)?.flightData?.arrivalTime}
-                  </div>
-                  <div style={styles.modalTimeLocation}>
-                    {searchParams.arrival_id || 'Destination'}
-                  </div>
-                </div>
-              </div>
-            </>
-          )}
+          <div className="text-center text-sm text-gray-500 mt-2">
+            All prices are shown in {getCurrencySymbol()}{searchParams.currency} and are subject to change
+          </div>
         </div>
-      )}
+      </div>
     </div>
   );
 };
